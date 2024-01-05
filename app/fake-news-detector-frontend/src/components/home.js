@@ -1,0 +1,181 @@
+import React, { useState, useEffect } from 'react';
+import { Container, Button, Row, Col } from 'react-bootstrap';
+import Header from './header';
+import { Check2, X } from 'react-bootstrap-icons';
+import Axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+
+function Home() {
+  document.title = 'News Guardian | Home';
+  let stage = 1;
+
+  const initialState = {
+    id: null,
+    news_category: '',
+    prediction: false,
+    publication_date: '',
+    section_id: '',
+    title: '',
+    type: '',
+    web_url: ''
+  }
+
+  const [liveNewsData, setLiveNewsData] = useState([]);
+  const [selectedNewsId, setSelectedNewsId] = useState(null);
+  const [selectedNewsData, setSelectedNewsData] = useState(initialState);
+  const [mustSeeNews, setMustSeeNews] = useState([]);
+  const [allNews, setAllNews] = useState([]);
+
+  const categories = ['Sport', 'Lifestyle', 'Arts'];
+
+  // Function to fetch live news data
+  const fetchLiveNewsData = () => {
+    Axios.get('http://127.0.0.1:8000/api/live/')
+      .then((response) => {
+        setLiveNewsData(response.data);
+        console.log(response.data);
+      })
+      .catch((error) => {
+        console.error('Error', error);
+      });
+    
+    Axios.get('http://127.0.0.1:8000/api/category/News/')
+    .then((response) => {
+      setMustSeeNews(response.data);
+      console.log(response.data);
+    })
+    .catch((error) => {
+      console.error('Error', error);
+    });
+
+    const fetchPromises = categories.map((category) => {
+      return Axios.get(`http://127.0.0.1:8000/api/category/${category}/`)
+        .then((response) => {
+          if (response.data.length > 0) {
+            return response.data[0]; // Return the news data
+          }
+        })
+        .catch((error) => {
+          console.error('Error', error);
+        });
+    });
+    
+    // Use Promise.all to handle all promises
+    Promise.all(fetchPromises)
+      .then((newsData) => {
+        // Filter out undefined values (failed requests)
+        const filteredNewsData = newsData.filter((data) => data !== undefined);
+        setAllNews(filteredNewsData);
+        console.log('All news fetched and added.');
+      })
+      .catch((error) => {
+        console.error('Error', error);
+      });    
+  };
+
+  // Fetch initial live news data on component mount
+  useEffect(() => {
+    fetchLiveNewsData();
+
+    const intervalId = setInterval(() => {
+      fetchLiveNewsData();
+
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const infoAboutNews = (newsId) => {
+    Axios.get('http://127.0.0.1:8000/api/live/' + newsId + "/")
+      .then((response) => {
+        console.log(response.data);
+        setSelectedNewsId(newsId);
+        setSelectedNewsData(response.data);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+  };
+  
+  const clearSelectedNews = () => {
+    setSelectedNewsId(null);
+  };
+
+  let newsData = [];
+  newsData = liveNewsData;
+
+  return (
+    <>
+      <Header activeContainer={stage} />
+      <Container className="home-container">
+        <div className='heading-title'>
+          <h4 className='heading-word'>Live News</h4>
+          <hr></hr>
+        </div>
+  
+        <Container className="live-news-container">
+          {liveNewsData.map((item) => (
+            <div
+              className={`live-news-title-container ${
+                selectedNewsId === item.id ? 'selected-news' : ''
+              }`}
+              key={item.id}
+              onClick={() => {
+                if (selectedNewsId === item.id) {
+                  clearSelectedNews();
+                } else {
+                  infoAboutNews(item.id);
+                }
+              }}
+            >
+              <div className="live-news-title">{item.title}</div>
+              <div className="live-news-prediction">
+                {item.prediction === true ? (
+                  <div className='real-news-prediction'>
+                    <Check2 /> Predicted as Real News
+                  </div>
+                ) : (
+                  <div className='fake-news-prediction'>
+                    <X /> Predicted as Fake News
+                  </div>
+                )}
+                {selectedNewsId === item.id ? (
+                  <div className='selected-news-additional-info'>
+                    <table>
+                      <tr>News Category:
+                        <td>{selectedNewsData.news_category}</td>
+                      </tr>
+                      <tr>Publication Date:
+                        <td>{selectedNewsData.publication_date}</td>
+                      </tr>
+                      <tr>Section ID:
+                        <td>{selectedNewsData.section_id}</td>
+                      </tr>
+                      <tr>Title:
+                        <td>{selectedNewsData.title}</td>
+                      </tr>
+                      <tr>Type:
+                        <td>{selectedNewsData.type}</td>
+                      </tr>
+                      <tr>Web Url:
+                        <td><a href={selectedNewsData.web_url} target='_blank' rel="noreferrer">{selectedNewsData.web_url}</a></td>
+                      </tr>
+                    </table>
+                  </div>
+  
+                ) : null}
+  
+  
+              </div>
+            </div>
+          ))}
+        </Container>
+  
+        <ToastContainer />
+      </Container>
+    </>
+  );
+  }
+  
+  export default Home;
+  
