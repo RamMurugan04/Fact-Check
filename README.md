@@ -1,8 +1,8 @@
-FactCheck 
+#FactCheck 
 
 Welcome to FactCheck Web, a Fake News Detection project utilizing a powerful machine learning model. This full-stack web application is designed to combat the spread of misinformation and fake news, providing users with a reliable tool to discern the truth.
 
-Key Features:
+#Key Features:
 
 Intuitive User Interface: A user-friendly interface developed with React ensures seamless navigation and an engaging user experience.
 
